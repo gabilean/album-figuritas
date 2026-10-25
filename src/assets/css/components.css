@@ -144,3 +144,78 @@
   font-size: 0.85rem;
   font-weight: 500;
 }
+
+/* Tablas de Administración */
+.tabla-admin {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--color-bg-card);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.tabla-admin th,
+.tabla-admin td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabla-admin th {
+  background-color: #172a30;
+  color: var(--color-text-light);
+}
+
+/* Badges de Identificación y Roles */
+.badge-id {
+  background-color: var(--color-accent);
+  color: var(--color-bg-main);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.badge-role-admin {
+  background-color: var(--color-warning);
+  color: var(--color-bg-main);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.badge-role-user {
+  background-color: var(--color-primary);
+  color: var(--color-text-light);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.actions-cell {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* Paginación y Barra de Herramientas */
+.pagination-mock {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.page-btn {
+  background-color: var(--color-bg-card);
+  color: var(--color-text-light);
+  border: 1px solid var(--color-border);
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.page-btn.active {
+  background-color: var(--color-accent);
+  color: var(--color-bg-main);
+}

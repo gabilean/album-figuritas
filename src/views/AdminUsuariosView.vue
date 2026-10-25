@@ -1,125 +1,168 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import { useUsuarios } from '@/composables/useUsuarios'
 
-const busqueda = ref('')
+const {
+  usuarios,
+  loading,
+  error,
+  filtros,
+  cargarUsuarios,
+  crearUsuario,
+  actualizarUsuario,
+  eliminarUsuario
+} = useUsuarios()
 
-const usuarios = ref([
-  { id: 1, nombreUsuario: 'nombreUsuario', email: 'email', rol: 'Administrador' },
-  { id: 2, nombreUsuario: 'nombreUsuario', email: 'email', rol: 'Default' },
-  { id: 3, nombreUsuario: 'nombreUsuario', email: 'email', rol: 'Default' },
-  { id: 4, nombreUsuario: 'nombreUsuario', email: 'email', rol: 'Default' }
-])
+const editandoId = ref(null)
+
+const form = reactive({
+  nombre_usuario: '',
+  email: '',
+  rol: 'user'
+})
+
+onMounted(() => {
+  cargarUsuarios()
+})
+
+function resetForm() {
+  editandoId.value = null
+  form.nombre_usuario = ''
+  form.email = ''
+  form.rol = 'user'
+}
+
+function prepararEdicion(user) {
+  editandoId.value = user.id
+  form.nombre_usuario = user.nombre_usuario
+  form.email = user.email || ''
+  form.rol = user.rol || 'user'
+}
+
+async function guardar() {
+  const datos = {
+    nombre_usuario: form.nombre_usuario.trim(),
+    email: form.email.trim() || null,
+    rol: form.rol
+  }
+
+  const ok = editandoId.value
+    ? await actualizarUsuario(editandoId.value, datos)
+    : await crearUsuario(datos)
+
+  if (ok) {
+    resetForm()
+  }
+}
+
+async function confirmarEliminacion(id) {
+  if (confirm('¿Estás seguro de eliminar este usuario? Sus figuritas vinculadas también se removerán.')) {
+    await eliminarUsuario(id)
+  }
+}
 </script>
 
 <template>
   <div class="view-usuarios">
-    <h1 style="text-align: center; margin-bottom: 1.5rem;">Usuarios</h1>
+    <h1 style="text-align: center; margin-bottom: 1.5rem;">Gestión de Usuarios</h1>
 
-    <div class="toolbar-usuarios">
-      <div class="search-box">
-        <input v-model="busqueda" type="text" class="form-control" placeholder="Buscar" />
-      </div>
+    <!-- Formulario de Alta / Modificación -->
+    <section class="form-section">
+      <h2 style="margin-bottom: 1rem; font-size: 1.2rem; text-align: center;">
+        {{ editandoId ? 'Editar Usuario' : 'Crear Nuevo Usuario' }}
+      </h2>
 
-      <div class="pagination-mock">
-        <button class="page-btn active">1</button>
-        <button class="page-btn">2</button>
-        <button class="page-btn">3</button>
-        <button class="page-btn">4</button>
-      </div>
+      <form @submit.prevent="guardar" class="form-grid">
+        <div class="form-group">
+          <label>Nombre de Usuario:</label>
+          <input
+            v-model="form.nombre_usuario"
+            type="text"
+            required
+            class="form-control"
+            placeholder="Ej: juanperez"
+          />
+        </div>
 
-      <button class="btn btn-primary">Agregar</button>
-    </div>
+        <div class="form-group">
+          <label>Email:</label>
+          <input
+            v-model="form.email"
+            type="email"
+            class="form-control"
+            placeholder="Ej: usuario@correo.com"
+          />
+        </div>
 
-    <table class="tabla-admin">
+        <div class="form-group">
+          <label>Rol:</label>
+          <select v-model="form.rol" class="form-control">
+            <option value="user">Usuario (Default)</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+
+        <div class="form-buttons">
+          <button type="submit" :disabled="loading" class="btn btn-primary">
+            {{ editandoId ? 'Guardar Cambios' : 'Crear Usuario' }}
+          </button>
+          <button v-if="editandoId" type="button" @click="resetForm" class="btn btn-secondary">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Barra de Filtros y Búsqueda -->
+    <section class="search-section">
+      <input
+        v-model="filtros.busqueda"
+        type="text"
+        class="form-control"
+        placeholder="Buscar por nombre de usuario..."
+        @keyup.enter="cargarUsuarios"
+      />
+      <select v-model="filtros.rol" class="form-control" style="max-width: 180px;" @change="cargarUsuarios">
+        <option value="">Todos los roles</option>
+        <option value="admin">Administrador</option>
+        <option value="user">Usuario Default</option>
+      </select>
+      <button class="btn btn-primary" @click="cargarUsuarios">Buscar</button>
+    </section>
+
+    <!-- Estados de Carga y Error -->
+    <p v-if="loading">Cargando usuarios...</p>
+    <p v-if="error" class="error-msg">{{ error }}</p>
+
+    <!-- Tabla de Usuarios -->
+    <table v-if="!loading && usuarios.length" class="tabla-admin">
       <thead>
         <tr>
-          <th>idUsuario</th>
-          <th>nombreUsuario</th>
-          <th>email</th>
-          <th>rol</th>
-          <th style="text-align: center;">Administrar</th>
+          <th>ID</th>
+          <th>Nombre de Usuario</th>
+          <th>Email</th>
+          <th>Rol</th>
+          <th style="text-align: center;">Acciones</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="user in usuarios" :key="user.id">
           <td><span class="badge-id">{{ user.id }}</span></td>
-          <td>{{ user.nombreUsuario }}</td>
-          <td>{{ user.email }}</td>
-          <td>{{ user.rol }}</td>
+          <td>{{ user.nombre_usuario }}</td>
+          <td>{{ user.email || 'N/A' }}</td>
+          <td>
+            <span :class="user.rol === 'admin' ? 'badge-role-admin' : 'badge-role-user'">
+              {{ user.rol === 'admin' ? 'Administrador' : 'Default' }}
+            </span>
+          </td>
           <td class="actions-cell">
-            <button class="btn btn-warning">Modificar</button>
-            <button class="btn btn-danger">Eliminar</button>
+            <button class="btn btn-warning" @click="prepararEdicion(user)">Modificar</button>
+            <button class="btn btn-danger" @click="confirmarEliminacion(user.id)">Eliminar</button>
           </td>
         </tr>
       </tbody>
     </table>
+
+    <p v-else-if="!loading">No se encontraron usuarios registrados.</p>
   </div>
 </template>
-
-<style scoped>
-.toolbar-usuarios {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  gap: 1rem;
-}
-
-.search-box {
-  flex: 1;
-  max-width: 300px;
-}
-
-.pagination-mock {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.page-btn {
-  background-color: var(--color-bg-card);
-  color: var(--color-text-light);
-  border: 1px solid var(--color-border);
-  padding: 0.25rem 0.6rem;
-  cursor: pointer;
-  border-radius: 2px;
-}
-
-.page-btn.active {
-  background-color: var(--color-accent);
-  color: var(--color-bg-main);
-}
-
-.tabla-admin {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: var(--color-bg-card);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.tabla-admin th,
-.tabla-admin td {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.tabla-admin th {
-  background-color: #172a30;
-  color: var(--color-text-light);
-}
-
-.badge-id {
-  background-color: var(--color-accent);
-  color: var(--color-bg-main);
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-weight: bold;
-}
-
-.actions-cell {
-  display: flex;
-  justify-content: center;
-  gap: 0.5rem;
-}
-</style>

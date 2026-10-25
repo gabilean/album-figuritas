@@ -1,7 +1,16 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
 
+const router = useRouter()
+const { perfil, logout } = useAuth()
 const menuAbierto = ref(false)
+
+async function ejecutarLogout() {
+  await logout()
+  router.push('/login')
+}
 </script>
 
 <template>
@@ -11,8 +20,8 @@ const menuAbierto = ref(false)
     </div>
 
     <div class="user-info-box">
-      <span class="user-badge">nombreUsuario</span>
-      <span class="role-badge">Administrador</span>
+      <span class="user-badge">{{ perfil?.nombre_usuario || 'Usuario' }}</span>
+      <span class="role-badge">{{ perfil?.rol === 'admin' ? 'Administrador' : 'Default' }}</span>
     </div>
 
     <div class="nav-section">
@@ -31,7 +40,7 @@ const menuAbierto = ref(false)
     </div>
 
     <div class="sidebar-footer">
-      <button class="btn btn-secondary btn-logout">Logout</button>
+      <button class="btn btn-secondary btn-logout" @click="ejecutarLogout">Logout</button>
     </div>
   </aside>
 </template>
