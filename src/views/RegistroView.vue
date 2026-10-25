@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
-const { registrar, loading, error } = useAuth()
+const { registrar, esAdmin, loading, error } = useAuth()
 
 const form = reactive({
   nombreUsuario: '',
@@ -15,7 +15,8 @@ const form = reactive({
 async function procesarRegistro() {
   const ok = await registrar(form.email, form.password, form.nombreUsuario)
   if (ok) {
-    router.push('/admin/figuritas')
+    const destino = esAdmin.value ? '/admin/figuritas' : '/mi-album'
+    router.push(destino)
   }
 }
 </script>

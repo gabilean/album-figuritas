@@ -2,13 +2,18 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import AdminFiguritasView from '@/views/AdminFiguritasView.vue'
 import AdminUsuariosView from '@/views/AdminUsuariosView.vue'
+import MiAlbumView from '@/views/MiAlbumView.vue'
 import LoginView from '@/views/LoginView.vue'
 import RegistroView from '@/views/RegistroView.vue'
 
 const routes = [
   {
     path: '/',
-    redirect: '/admin/figuritas'
+    name: 'home',
+    redirect: () => {
+      const { esAdmin } = useAuth()
+      return esAdmin.value ? '/admin/figuritas' : '/mi-album'
+    }
   },
   {
     path: '/login',
@@ -21,6 +26,12 @@ const routes = [
     name: 'registro',
     component: RegistroView,
     meta: { requireGuest: true }
+  },
+  {
+    path: '/mi-album',
+    name: 'mi-album',
+    component: MiAlbumView,
+    meta: { requireAuth: true }
   },
   {
     path: '/admin/figuritas',
@@ -43,7 +54,7 @@ export const router = createRouter({
 
 router.beforeEach(async (to) => {
   const { estaAutenticado, esAdmin, inicializarSesion } = useAuth()
-  
+
   await inicializarSesion()
 
   if (to.meta.requireAuth && !estaAutenticado.value) {
@@ -51,10 +62,10 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.requireAdmin && !esAdmin.value) {
-    return { name: 'login' }
+    return { name: 'mi-album' }
   }
 
   if (to.meta.requireGuest && estaAutenticado.value) {
-    return { name: 'admin-figuritas' }
+    return esAdmin.value ? { name: 'admin-figuritas' } : { name: 'mi-album' }
   }
 })

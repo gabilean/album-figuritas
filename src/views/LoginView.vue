@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
-const { login, loading, error } = useAuth()
+const { login, esAdmin, loading, error } = useAuth()
 
 const form = reactive({
   email: '',
@@ -14,7 +14,8 @@ const form = reactive({
 async function procesarLogin() {
   const ok = await login(form.email, form.password)
   if (ok) {
-    router.push('/admin/figuritas')
+    const destino = esAdmin.value ? '/admin/figuritas' : '/mi-album'
+    router.push(destino)
   }
 }
 </script>
