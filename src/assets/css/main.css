@@ -1,0 +1,46 @@
+:root {
+  /* Paleta Base */
+  --color-bg-main: #1f363d;       /* Fondo general oscuro */
+  --color-bg-card: #27454e;       /* Fondo de tarjetas / contenedores */
+  --color-primary: #40798c;       /* Azul primario */
+  --color-accent: #70a9a1;        /* Verde agua para detalles */
+  --color-success: #9ec1a3;       /* Verde para confirmaciones / acentos */
+  --color-text-light: #cfe0c3;    /* Texto principal claro */
+  --color-text-muted: #a3b899;    /* Texto secundario */
+  
+  /* Botones de Estado */
+  --color-warning: #e0a96d;
+  --color-danger: #d9534f;
+  --color-gold: #ffd700;
+  --color-gold-bg: rgba(255, 215, 0, 0.1);
+  --color-border: #2d4f59;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--color-text-light);
+  background-color: var(--color-bg-main);
+  line-height: 1.5;
+}
+
+.container {
+  max-width: 960px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+h1, h2, h3 {
+  color: var(--color-text-light);
+}
+
+.error-msg {
+  color: var(--color-danger);
+  font-weight: 600;
+  margin: 1rem 0;
+}
