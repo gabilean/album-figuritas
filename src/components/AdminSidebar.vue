@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 
-const menuAbierto = ref(true)
+const menuAbierto = ref(false)
 </script>
 
 <template>
@@ -17,7 +17,7 @@ const menuAbierto = ref(true)
 
     <div class="nav-section">
       <button class="nav-dropdown-btn" @click="menuAbierto = !menuAbierto">
-        Administrar <span class="arrow" :class="{ open: !menuAbierto }">▸</span>
+        Administrar <span class="arrow" :class="{ open: menuAbierto }">▸</span>
       </button>
 
       <div v-if="menuAbierto" class="submenu">
