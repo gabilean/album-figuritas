@@ -44,3 +44,120 @@ h1, h2, h3 {
   font-weight: 600;
   margin: 1rem 0;
 }
+
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--color-bg-main);
+}
+
+.sidebar-admin {
+  width: 240px;
+  background-color: #172a30;
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1rem;
+  box-sizing: border-box;
+}
+
+.sidebar-brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.logo-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid var(--color-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--color-text-light);
+}
+
+.user-info-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.user-badge, .role-badge {
+  background-color: var(--color-bg-card);
+  color: var(--color-text-light);
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  text-align: center;
+  border: 1px solid var(--color-border);
+}
+
+.nav-section {
+  flex: 1;
+}
+
+.nav-dropdown-btn {
+  width: 100%;
+  background-color: var(--color-bg-card);
+  color: var(--color-text-light);
+  border: 1px solid var(--color-border);
+  padding: 0.6rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+
+.arrow {
+  transition: transform 0.2s ease;
+}
+
+.arrow.open {
+  transform: rotate(90deg);
+}
+
+.submenu {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.5rem;
+  margin-left: 1rem;
+  gap: 0.25rem;
+}
+
+.submenu-item {
+  padding: 0.5rem 1rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: var(--color-bg-main);
+  border: 1px solid transparent;
+}
+
+.submenu-item:hover,
+.submenu-item.active {
+  background-color: #40798c;
+  color: #ffffff;
+  border-color: var(--color-accent);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+}
+
+.btn-logout {
+  width: 100%;
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
