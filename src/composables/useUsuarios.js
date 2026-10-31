@@ -1,4 +1,4 @@
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { usuariosService } from '@/services/usuariosService'
 
 export function useUsuarios() {
@@ -11,7 +11,10 @@ export function useUsuarios() {
     rol: ''
   })
 
-  async function ejecutarAccion(tarea) {
+  let timerDebounce = null
+
+  // Función auxiliar limpia para manejo de estado, try/catch y banderas
+  async function ejecutarAccion(tarea, mensajeErrorDefault = 'Error en la operación') {
     loading.value = true
     error.value = null
     let exito = false
@@ -20,7 +23,7 @@ export function useUsuarios() {
       await tarea()
       exito = true
     } catch (err) {
-      error.value = err.response?.data?.message || err.message || 'Error en la operación'
+      error.value = err.response?.data?.message || err.message || mensajeErrorDefault
     } finally {
       loading.value = false
     }
@@ -31,28 +34,39 @@ export function useUsuarios() {
   async function cargarUsuarios() {
     return ejecutarAccion(async () => {
       usuarios.value = await usuariosService.listar(filtros)
-    })
+    }, 'Error al cargar usuarios')
   }
+
+  // Búsqueda dinámica reactiva (live search) con debounce de 300ms
+  watch(
+    () => [filtros.busqueda, filtros.rol],
+    () => {
+      clearTimeout(timerDebounce)
+      timerDebounce = setTimeout(() => {
+        cargarUsuarios()
+      }, 300)
+    }
+  )
 
   async function crearUsuario(datos) {
     return ejecutarAccion(async () => {
       await usuariosService.crear(datos)
-      usuarios.value = await usuariosService.listar(filtros)
-    })
+      await cargarUsuarios()
+    }, 'Error al crear usuario')
   }
 
   async function actualizarUsuario(id, datos) {
     return ejecutarAccion(async () => {
       await usuariosService.actualizar(id, datos)
-      usuarios.value = await usuariosService.listar(filtros)
-    })
+      await cargarUsuarios()
+    }, 'Error al actualizar usuario')
   }
 
   async function eliminarUsuario(id) {
     return ejecutarAccion(async () => {
       await usuariosService.eliminar(id)
-      usuarios.value = await usuariosService.listar(filtros)
-    })
+      await cargarUsuarios()
+    }, 'Error al eliminar usuario')
   }
 
   return {

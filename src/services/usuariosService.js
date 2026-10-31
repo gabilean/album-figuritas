@@ -1,5 +1,6 @@
 import api from './api'
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ENDPOINT = '/profiles'
 
 export const usuariosService = {
@@ -23,10 +24,19 @@ export const usuariosService = {
   },
 
   async crear(datos) {
-    const { data } = await api.post(ENDPOINT, datos, {
-      headers: { Prefer: 'return=representation' }
+    const { data } = await api.post(`${SUPABASE_URL}/auth/v1/signup`, {
+      email: datos.email,
+      password: datos.password || '123456',
+      data: {
+        nombre_usuario: datos.nombre_usuario
+      }
     })
-    return data[0]
+
+    if (datos.rol && datos.rol !== 'user' && data.user?.id) {
+      await this.actualizar(data.user.id, { rol: datos.rol })
+    }
+
+    return data
   },
 
   async actualizar(id, datos) {
@@ -37,10 +47,10 @@ export const usuariosService = {
     return data[0]
   },
 
+  // Invocación a la función de servidor RPC para borrado completo
   async eliminar(id) {
-    const { data } = await api.delete(ENDPOINT, {
-      params: { id: `eq.${id}` },
-      headers: { Prefer: 'return=representation' }
+    const { data } = await api.post('/rpc/eliminar_usuario_completo', {
+      usuario_id: id
     })
     return data
   }

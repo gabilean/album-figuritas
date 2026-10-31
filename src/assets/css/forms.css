@@ -192,3 +192,23 @@
 .text-center {
   text-align: center;
 }
+
+/* Barra de búsqueda y filtros */
+.search-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+/* Tamaño acotado para el campo de búsqueda */
+.search-input {
+  max-width: 320px;
+  width: 100%;
+}
+
+.select-rol {
+  max-width: 180px;
+  width: 100%;
+}

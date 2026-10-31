@@ -41,6 +41,11 @@ function prepararEdicion(user) {
   form.rol = user.rol || 'user'
 }
 
+function limpiarFiltros() {
+  filtros.busqueda = ''
+  filtros.rol = ''
+}
+
 async function guardar() {
   const datos = {
     nombre_usuario: form.nombre_usuario.trim(),
@@ -120,21 +125,27 @@ async function confirmarEliminacion(id) {
         </form>
       </section>
 
-      <!-- Barra de Filtros y Búsqueda -->
+      <!-- Barra de Búsqueda Reactiva y Acotada -->
       <section class="search-section">
         <input
           v-model="filtros.busqueda"
           type="text"
-          class="form-control"
+          class="form-control search-input"
           placeholder="Buscar por nombre de usuario..."
-          @keyup.enter="cargarUsuarios"
         />
-        <select v-model="filtros.rol" class="form-control" style="max-width: 180px;" @change="cargarUsuarios">
+        <select v-model="filtros.rol" class="form-control select-rol">
           <option value="">Todos los roles</option>
           <option value="admin">Administrador</option>
           <option value="user">Usuario Default</option>
         </select>
-        <button class="btn btn-primary" @click="cargarUsuarios">Buscar</button>
+        <button
+          v-if="filtros.busqueda || filtros.rol"
+          type="button"
+          class="btn btn-secondary"
+          @click="limpiarFiltros"
+        >
+          Limpiar
+        </button>
       </section>
 
       <!-- Estados de Carga y Error -->
@@ -142,7 +153,7 @@ async function confirmarEliminacion(id) {
       <p v-if="error" class="error-msg">{{ error }}</p>
 
       <!-- Tabla de Usuarios -->
-      <table v-if="!loading && usuarios.length" class="tabla-admin">
+      <table v-if="!loading" class="tabla-admin">
         <thead>
           <tr>
             <th>ID</th>
@@ -153,6 +164,7 @@ async function confirmarEliminacion(id) {
           </tr>
         </thead>
         <tbody>
+          <!-- Si hay resultados -->
           <tr v-for="user in usuarios" :key="user.id">
             <td><span class="badge-id">{{ user.id }}</span></td>
             <td>{{ user.nombre_usuario }}</td>
@@ -167,10 +179,15 @@ async function confirmarEliminacion(id) {
               <button class="btn btn-danger" @click="confirmarEliminacion(user.id)">Eliminar</button>
             </td>
           </tr>
+
+          <!-- Si NO hay resultados tras la búsqueda -->
+          <tr v-if="usuarios.length === 0">
+            <td colspan="5" class="text-center text-muted pad-empty">
+              No se encontraron usuarios que coincidan con la búsqueda.
+            </td>
+          </tr>
         </tbody>
       </table>
-
-      <p v-else-if="!loading">No se encontraron usuarios registrados.</p>
     </main>
   </div>
 </template>

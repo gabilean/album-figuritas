@@ -1,4 +1,4 @@
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { figuritasService } from '@/services/figuritasService'
 
 export function useFiguritas() {
@@ -11,7 +11,9 @@ export function useFiguritas() {
     pais: ''
   })
 
-  async function ejecutarAccion(tarea) {
+  let timerDebounce = null
+
+  async function ejecutarAccion(tarea, mensajeErrorDefault = 'Error en la operación') {
     loading.value = true
     error.value = null
     let exito = false
@@ -20,7 +22,7 @@ export function useFiguritas() {
       await tarea()
       exito = true
     } catch (err) {
-      error.value = err.response?.data?.message || err.message || 'Error en la operación'
+      error.value = err.response?.data?.message || err.message || mensajeErrorDefault
     } finally {
       loading.value = false
     }
@@ -31,28 +33,39 @@ export function useFiguritas() {
   async function cargarFiguritas() {
     return ejecutarAccion(async () => {
       figuritas.value = await figuritasService.listar(filtros)
-    })
+    }, 'Error al cargar figuritas')
   }
+
+  // Live search con debounce reutilizando cargarFiguritas
+  watch(
+    () => [filtros.busqueda, filtros.pais],
+    () => {
+      clearTimeout(timerDebounce)
+      timerDebounce = setTimeout(() => {
+        cargarFiguritas()
+      }, 300)
+    }
+  )
 
   async function crearFigurita(datos) {
     return ejecutarAccion(async () => {
       await figuritasService.crear(datos)
-      figuritas.value = await figuritasService.listar(filtros)
-    })
+      await cargarFiguritas()
+    }, 'Error al crear figurita')
   }
 
   async function actualizarFigurita(id, datos) {
     return ejecutarAccion(async () => {
       await figuritasService.actualizar(id, datos)
-      figuritas.value = await figuritasService.listar(filtros)
-    })
+      await cargarFiguritas()
+    }, 'Error al actualizar figurita')
   }
 
   async function eliminarFigurita(id) {
     return ejecutarAccion(async () => {
       await figuritasService.eliminar(id)
-      figuritas.value = await figuritasService.listar(filtros)
-    })
+      await cargarFiguritas()
+    }, 'Error al eliminar figurita')
   }
 
   return {

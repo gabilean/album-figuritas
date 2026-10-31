@@ -12,7 +12,7 @@ const routes = [
     name: 'home',
     redirect: () => {
       const { esAdmin } = useAuth()
-      return esAdmin.value ? '/admin/figuritas' : '/mi-album'
+      return esAdmin.value ? '/admin/figuritas' : '/dashboard'
     }
   },
   {
@@ -26,6 +26,12 @@ const routes = [
     name: 'registro',
     component: RegistroView,
     meta: { requireGuest: true }
+  },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: MiAlbumView,
+    meta: { requireAuth: true }
   },
   {
     path: '/mi-album',
@@ -62,10 +68,10 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.requireAdmin && !esAdmin.value) {
-    return { name: 'mi-album' }
+    return { name: 'dashboard' }
   }
 
   if (to.meta.requireGuest && estaAutenticado.value) {
-    return esAdmin.value ? { name: 'admin-figuritas' } : { name: 'mi-album' }
+    return esAdmin.value ? { name: 'admin-figuritas' } : { name: 'dashboard' }
   }
 })

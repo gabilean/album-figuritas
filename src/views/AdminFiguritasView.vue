@@ -57,6 +57,11 @@ function prepararEdicion(fig) {
   form.es_especial = fig.es_especial || false
 }
 
+function limpiarFiltros() {
+  filtros.busqueda = ''
+  filtros.pais = ''
+}
+
 async function procesarArchivo(evento) {
   const archivo = evento.target.files[0]
   if (!archivo) return
@@ -242,22 +247,29 @@ async function confirmarEliminacion(figurita) {
         </form>
       </section>
 
-      <!-- Barra de Búsqueda -->
+      <!-- Barra de Búsqueda Reactiva y Acotada -->
       <section class="search-section">
         <input
           v-model="filtros.busqueda"
           type="text"
-          class="form-control"
+          class="form-control search-input"
           placeholder="Buscar por nombre de jugador..."
-          @keyup.enter="cargarFiguritas"
         />
-        <button class="btn btn-primary" @click="cargarFiguritas">Buscar</button>
+        <button
+          v-if="filtros.busqueda || filtros.pais"
+          type="button"
+          class="btn btn-secondary"
+          @click="limpiarFiltros"
+        >
+          Limpiar
+        </button>
       </section>
 
-      <!-- Estado y Grilla -->
+      <!-- Estados de Carga y Error -->
       <p v-if="loading">Cargando catálogo...</p>
       <p v-if="error" class="error-msg">{{ error }}</p>
 
+      <!-- Grilla de Figuritas -->
       <section v-if="!loading && figuritas.length" class="grid-figuritas">
         <FiguritaCard
           v-for="fig in figuritas"
@@ -267,6 +279,11 @@ async function confirmarEliminacion(figurita) {
           @eliminar="confirmarEliminacion(fig)"
         />
       </section>
+
+      <!-- Estado vacío cuando no hay resultados de búsqueda -->
+      <p v-else-if="!loading && figuritas.length === 0" class="text-center text-muted pad-empty">
+        No se encontraron figuritas que coincidan con la búsqueda.
+      </p>
     </main>
   </div>
 </template>
