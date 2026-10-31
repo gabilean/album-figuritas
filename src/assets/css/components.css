@@ -57,11 +57,17 @@
   flex-direction: column;
   justify-content: space-between;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .card-figurita:hover {
   transform: translateY(-2px);
+}
+
+/* Estado visual para figurita no obtenida */
+.card-figurita.modo-faltante {
+  opacity: 0.55;
+  filter: grayscale(85%);
 }
 
 .card-figurita.es-especial {
@@ -92,6 +98,32 @@
   font-weight: 700;
 }
 
+/* Contenedor de Imagen de Figurita */
+.card-image-container {
+  width: 100%;
+  height: 180px;
+  margin-bottom: 0.75rem;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: var(--color-bg-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+}
+
+.card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-img-placeholder {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
 .card-body h3 {
   font-size: 1.1rem;
   color: var(--color-text-light);
@@ -120,29 +152,36 @@
   font-size: 0.85rem;
 }
 
-.card-media {
-  width: 100%;
-  height: 180px;
-  margin-bottom: 0.75rem;
-  border-radius: 6px;
-  overflow: hidden;
-  background-color: var(--color-bg-main);
+/* Estado de Posesión en el Pie de la Tarjeta */
+.card-footer-status {
+  margin-top: 1rem;
   display: flex;
-  align-items: center;
   justify-content: center;
-  border: 1px solid var(--color-border);
 }
 
-.card-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.status-badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
-.card-img-placeholder {
-  color: var(--color-text-muted);
-  font-size: 0.85rem;
-  font-weight: 500;
+.status-faltante {
+  background-color: rgba(217, 83, 79, 0.15);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+}
+
+.status-pegada {
+  background-color: rgba(158, 193, 163, 0.2);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+
+.status-repetida {
+  background-color: var(--color-gold-bg);
+  color: var(--color-gold);
+  border: 1px solid var(--color-gold);
 }
 
 /* Tablas de Administración */
@@ -198,6 +237,21 @@
   display: flex;
   justify-content: center;
   gap: 0.5rem;
+}
+
+/* Utilitarios de Texto y Celdas Vacías */
+.text-center {
+  text-align: center;
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.pad-empty {
+  padding: 2rem 1rem !important;
+  font-size: 0.95rem;
 }
 
 /* Paginación y Barra de Herramientas */

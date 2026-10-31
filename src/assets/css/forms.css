@@ -65,12 +65,24 @@
 
 .search-section {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .search-section .form-control {
   flex: 1;
+}
+
+.search-input {
+  max-width: 320px;
+  width: 100%;
+}
+
+.select-rol {
+  max-width: 180px;
+  width: 100%;
 }
 
 .form-group-full {
@@ -193,22 +205,67 @@
   text-align: center;
 }
 
-/* Barra de búsqueda y filtros */
-.search-section {
+/* Filtros de ordenamiento dinámico */
+.filter-group {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-/* Tamaño acotado para el campo de búsqueda */
-.search-input {
-  max-width: 320px;
+.filter-group label {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.select-orden {
+  max-width: 200px;
   width: 100%;
 }
 
-.select-rol {
-  max-width: 180px;
-  width: 100%;
+/* Badges de Estado para Coleccionista */
+.status-badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-faltante {
+  background-color: rgba(217, 83, 79, 0.15);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+}
+
+.status-pegada {
+  background-color: rgba(158, 193, 163, 0.2);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+
+.status-repetida {
+  background-color: var(--color-gold-bg);
+  color: var(--color-gold);
+  border: 1px solid var(--color-gold);
+}
+
+.badge-especial-inline {
+  color: var(--color-gold);
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+/* Controles de cantidad (+ / -) */
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.quantity-count {
+  font-weight: bold;
+  font-size: 1rem;
+  min-width: 24px;
+  text-align: center;
 }

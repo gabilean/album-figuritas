@@ -2,14 +2,23 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { useAlbum } from '@/composables/useAlbum'
 
 const router = useRouter()
 const { perfil, esAdmin, logout } = useAuth()
+const { abrirSobreDiario, loading } = useAlbum()
+
 const menuAbierto = ref(false)
 
 async function ejecutarLogout() {
   await logout()
   router.push('/login')
+}
+
+async function reclamarSobre() {
+  if (perfil.value?.id) {
+    await abrirSobreDiario(perfil.value.id)
+  }
 }
 </script>
 
@@ -43,12 +52,23 @@ async function ejecutarLogout() {
 
       <!-- Opciones para Usuario Común -->
       <template v-else>
-        <router-link to="/dashboard" class="submenu-item" active-class="active">
+        <router-link to="/dashboard" class="sidebar-item" active-class="active">
           Dashboard
         </router-link>
-        <router-link to="/mi-album" class="submenu-item" active-class="active">
+        <router-link to="/mi-album" class="sidebar-item" active-class="active">
           Mi Álbum
         </router-link>
+
+        <!-- Botón de Drop de Sobre Diario (Ubicado por debajo de Mi Álbum) -->
+        <button
+          type="button"
+          class="btn-sobre-diario"
+          :disabled="loading"
+          @click="reclamarSobre"
+        >
+          <span class="icono-sobre">🎁</span>
+          <span>Abrir Sobre Diario</span>
+        </button>
       </template>
     </nav>
 

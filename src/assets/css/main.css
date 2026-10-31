@@ -114,6 +114,27 @@ h1, h2, h3 {
   flex: 1;
 }
 
+/* Enlaces directos del Sidebar (Usuario Común) */
+.sidebar-item {
+  display: block;
+  padding: 0.6rem 1rem;
+  color: var(--color-text-light);
+  text-decoration: none;
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.sidebar-item:hover,
+.sidebar-item.active {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-accent);
+}
+
 .nav-dropdown-btn {
   width: 100%;
   background-color: var(--color-bg-card);
@@ -169,10 +190,60 @@ h1, h2, h3 {
   width: 100%;
 }
 
-/* Área de Contenido Principal */
+/* Área de Contenido Principal (Restaura el formato de Dashboard y Mi Álbum) */
 .main-content {
   flex: 1;
   padding: 2rem;
   overflow-y: auto;
   box-sizing: border-box;
+  width: calc(100vw - 240px);
+}
+
+/* Botón de Sobre Diario con Animación */
+.btn-sobre-diario {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-top: 1.25rem;
+  background: linear-gradient(135deg, #ffd700 0%, #e0a96d 100%);
+  color: #1f363d;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: pulse-glow 2s infinite ease-in-out;
+}
+
+.btn-sobre-diario:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 18px rgba(255, 215, 0, 0.7);
+}
+
+.btn-sobre-diario:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  animation: none;
+}
+
+.icono-sobre {
+  font-size: 1.1rem;
+}
+
+/* Animación de Pulso / Resplandor */
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.85);
+  }
+  100% {
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+  }
 }
