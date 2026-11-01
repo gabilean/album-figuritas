@@ -2,11 +2,11 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
-import { useAlbum } from '@/composables/useAlbum'
+import { useAlbumStore } from '@/stores/albumStore'
 
 const router = useRouter()
 const { perfil, esAdmin, logout } = useAuth()
-const { abrirSobreDiario, loading } = useAlbum()
+const albumStore = useAlbumStore()
 
 const menuAbierto = ref(false)
 
@@ -17,9 +17,7 @@ async function ejecutarLogout() {
 
 async function reclamarSobre() {
   if (perfil.value?.id) {
-    await abrirSobreDiario(perfil.value.id)
-  } else {
-    console.warn('No se encontró el ID del usuario logueado en perfil')
+    await albumStore.abrirSobreDiario(perfil.value.id)
   }
 }
 </script>
@@ -36,7 +34,6 @@ async function reclamarSobre() {
     </div>
 
     <nav class="nav-section">
-      <!-- Opciones para Administrador -->
       <template v-if="esAdmin">
         <button class="nav-dropdown-btn" @click="menuAbierto = !menuAbierto">
           Administrar <span class="arrow" :class="{ open: menuAbierto }">▸</span>
@@ -52,7 +49,6 @@ async function reclamarSobre() {
         </div>
       </template>
 
-      <!-- Opciones para Usuario Común -->
       <template v-else>
         <router-link to="/dashboard" class="sidebar-item" active-class="active">
           Dashboard
@@ -61,11 +57,11 @@ async function reclamarSobre() {
           Mi Álbum
         </router-link>
 
-        <!-- Botón de Drop de Sobre Diario (Ubicado por debajo de Mi Álbum) -->
+        <!-- Botón llamativo que ejecuta la acción centralizada de Pinia -->
         <button
           type="button"
           class="btn-sobre-diario"
-          :disabled="loading"
+          :disabled="albumStore.loading"
           @click="reclamarSobre"
         >
           <span class="icono-sobre">🎁</span>
@@ -74,7 +70,6 @@ async function reclamarSobre() {
       </template>
     </nav>
 
-    <!-- Botón siempre ubicado al fondo del menú lateral -->
     <div class="sidebar-footer">
       <button class="btn btn-secondary btn-logout" @click="ejecutarLogout">Logout</button>
     </div>

@@ -75,3 +75,6 @@ router.beforeEach(async (to) => {
     return esAdmin.value ? { name: 'admin-figuritas' } : { name: 'dashboard' }
   }
 })
+
+// Exportación por defecto para coincidir con `import router from './router'` en main.js
+export default router

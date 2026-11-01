@@ -1,49 +1,36 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
-import { useAlbum } from '@/composables/useAlbum'
+import { useAlbumStore } from '@/stores/albumStore'
 
 const { perfil } = useAuth()
-const {
-  loading,
-  error,
-  filtros,
-  sobreMensaje,
-  figuritasProcesadas,
-  cargarDatosAlbum
-} = useAlbum()
+const albumStore = useAlbumStore()
 
 onMounted(() => {
   if (perfil.value?.id) {
-    cargarDatosAlbum(perfil.value.id)
+    albumStore.cargarDatosAlbum(perfil.value.id)
   }
 })
-
-function limpiarFiltros() {
-  filtros.busqueda = ''
-  filtros.ordenarPor = 'numero'
-}
 </script>
 
 <template>
   <div class="user-layout">
-    <!-- Encabezado Estandarizado -->
     <div class="header-banner">
       <h1>Mi Álbum de Figuritas</h1>
       <span class="user-greeting">Hola, {{ perfil?.nombre_usuario || 'Coleccionista' }}</span>
     </div>
 
     <main class="main-content-inner">
-     <!-- Banner de Recompensa del Sobre -->
-      <div v-if="sobreMensaje && sobreMensaje.length" class="banner-sobre-exito">
+      <!-- Banner del Sobre -->
+      <div v-if="albumStore.sobreMensaje && albumStore.sobreMensaje.length" class="banner-sobre-exito">
         <div class="banner-contenido">
           <h3>🎉 ¡Abriste un sobre con 5 figuritas!</h3>
           <ul>
-            <li v-for="fig in sobreMensaje" :key="fig.id">
+            <li v-for="fig in albumStore.sobreMensaje" :key="fig.id">
               #{{ fig.numero }} <strong>{{ fig.nombre_jugador }}</strong> ({{ fig.pais }})
             </li>
           </ul>
-          <button type="button" class="btn btn-secondary btn-sm" @click="sobreMensaje = null">
+          <button type="button" class="btn btn-secondary btn-sm" @click="albumStore.cerrarBanner">
             Cerrar
           </button>
         </div>
@@ -52,7 +39,7 @@ function limpiarFiltros() {
       <!-- Barra de Filtros -->
       <section class="search-section">
         <input
-          v-model="filtros.busqueda"
+          v-model="albumStore.filtros.busqueda"
           type="text"
           class="form-control search-input"
           placeholder="Buscar por jugador, número o país..."
@@ -60,7 +47,7 @@ function limpiarFiltros() {
 
         <div class="filter-group">
           <label for="ordenar">Ordenar por:</label>
-          <select id="ordenar" v-model="filtros.ordenarPor" class="form-control select-orden">
+          <select id="ordenar" v-model="albumStore.filtros.ordenarPor" class="form-control select-orden">
             <option value="numero">Número (#)</option>
             <option value="nombre_jugador">Nombre de Jugador</option>
             <option value="pais">Selección / País</option>
@@ -69,33 +56,31 @@ function limpiarFiltros() {
         </div>
 
         <button
-          v-if="filtros.busqueda || filtros.ordenarPor !== 'numero'"
+          v-if="albumStore.filtros.busqueda || albumStore.filtros.ordenarPor !== 'numero'"
           type="button"
           class="btn btn-secondary"
-          @click="limpiarFiltros"
+          @click="albumStore.limpiarFiltros"
         >
           Limpiar
         </button>
       </section>
 
-      <!-- Estados de Carga y Error -->
-      <p v-if="loading">Cargando tu colección...</p>
-      <p v-if="error" class="error-msg">{{ error }}</p>
-
-      <!-- Grilla Visual (Evaluación Reactiva Directa) -->
-      <section v-if="!loading && figuritasProcesadas.length" class="grid-figuritas">
+      <!-- Grilla de Tarjetas -->
+      <section v-if="!albumStore.loading && albumStore.figuritasProcesadas.length" class="grid-figuritas">
         <article
-          v-for="fig in figuritasProcesadas"
+          v-for="fig in albumStore.figuritasProcesadas"
           :key="fig.id"
           class="card-figurita"
           :class="{
             'es-especial': fig.es_especial,
-            'modo-faltante': fig.cantidad === 0
+            'modo-faltante': fig.cantidad === 0,
+            'primera-posesion': fig.esNueva
           }"
         >
           <div class="card-header">
             <span class="numero">#{{ fig.numero }}</span>
-            <span v-if="fig.es_especial" class="badge-especial">★ Especial</span>
+            <span v-if="fig.esNueva" class="badge-nueva">✨ ¡Nueva!</span>
+            <span v-else-if="fig.es_especial" class="badge-especial">★ Especial</span>
           </div>
 
           <div class="card-image-container">
@@ -116,7 +101,6 @@ function limpiarFiltros() {
             <span class="posicion">Posición: {{ fig.posicion || 'N/A' }}</span>
           </div>
 
-          <!-- Conexión reactiva instantánea por 'fig.cantidad' -->
           <div class="card-footer-status">
             <span v-if="fig.cantidad === 0" class="status-badge status-faltante">
               Faltante (0)
@@ -130,10 +114,6 @@ function limpiarFiltros() {
           </div>
         </article>
       </section>
-
-      <p v-else-if="!loading && figuritasProcesadas.length === 0" class="text-center text-muted pad-empty">
-        No se encontraron figuritas que coincidan con la búsqueda.
-      </p>
     </main>
   </div>
 </template>
