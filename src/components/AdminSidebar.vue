@@ -57,15 +57,19 @@ async function reclamarSobre() {
           Mi Álbum
         </router-link>
 
-        <!-- Botón llamativo que ejecuta la acción centralizada de Pinia -->
+        <!-- Botón con timer de cooldown dinámico -->
         <button
           type="button"
           class="btn-sobre-diario"
-          :disabled="albumStore.loading"
+          :class="{ 'modo-cooldown': albumStore.cooldownActivo }"
+          :disabled="albumStore.loading || albumStore.cooldownActivo"
           @click="reclamarSobre"
         >
-          <span class="icono-sobre">🎁</span>
-          <span>Abrir Sobre Diario</span>
+          <span class="icono-sobre">{{ albumStore.cooldownActivo ? '⏳' : '🎁' }}</span>
+          <span v-if="albumStore.cooldownActivo">
+            Disponible en {{ albumStore.cooldownFormateado }}
+          </span>
+          <span v-else>Abrir Sobre Diario</span>
         </button>
       </template>
     </nav>

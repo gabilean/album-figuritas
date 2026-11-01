@@ -3,23 +3,97 @@ import { defineStore } from 'pinia'
 import { albumService } from '@/services/albumService'
 import { figuritasService } from '@/services/figuritasService'
 
+// ⚙️ CONFIGURACIÓN FÁCIL DEL TIMER (Cambiá este valor según tus necesidades)
+// Ejemplos: 24 (para 24 horas real), 1 (1 hora), 0.0833 (5 minutos), 0.0166 (1 minuto)
+const TIEMPO_COOLDOWN_HORAS = 0.0833 
+
 export const useAlbumStore = defineStore('album', () => {
   // Estado Centralizado en RAM
   const catalogo = ref([])
   const miColeccion = ref([])
   const sobreMensaje = ref(null)
-  const resumenSobreActual = ref({}) // Mapa de ID -> cantidadGanada en el último sobre abierto
+  const resumenSobreActual = ref({})
   const loading = ref(false)
   const error = ref(null)
+
+  // Estado del Timer
+  const ultimoReclamoTime = ref(Number(localStorage.getItem('ultimo_reclamo_sobre')) || 0)
+  const tiempoRestanteSegundos = ref(0)
+  let timerInterval = null
 
   const filtros = ref({
     busqueda: '',
     ordenarPor: 'numero'
   })
 
-  // Getters / Computadas
+  // --- GETTERS / COMPUTADAS DEL TIMER ---
+  const duracionCooldownMs = computed(() => TIEMPO_COOLDOWN_HORAS * 60 * 60 * 1000)
+
+  // Determina si el botón debe estar deshabilitado por el timer
+  const cooldownActivo = computed(() => tiempoRestanteSegundos.value > 0)
+
+  // Formatea los segundos a hh:mm:ss o mm:ss de forma amigable
+  const cooldownFormateado = computed(() => {
+    const totalSecs = tiempoRestanteSegundos.value
+    if (totalSecs <= 0) return ''
+
+    const horas = Math.floor(totalSecs / 3600)
+    const minutos = Math.floor((totalSecs % 3600) / 60)
+    const segundos = totalSecs % 60
+
+    const mm = String(minutos).padStart(2, '0')
+    const ss = String(segundos).padStart(2, '0')
+
+    if (horas > 0) {
+      const hh = String(horas).padStart(2, '0')
+      return `${hh}:${mm}:${ss}`
+    }
+    return `${mm}:${ss}`
+  })
+
+  // Iniciar la cuenta regresiva por segundo
+  function iniciarTimer() {
+    clearInterval(timerInterval)
+
+    const calcularRestante = () => {
+      if (!ultimoReclamoTime.value) {
+        tiempoRestanteSegundos.value = 0
+        return
+      }
+
+      const ahora = Date.now()
+      const transcurrido = ahora - ultimoReclamoTime.value
+      const restanteMs = duracionCooldownMs.value - transcurrido
+
+      if (restanteMs <= 0) {
+        tiempoRestanteSegundos.value = 0
+        clearInterval(timerInterval)
+      } else {
+        tiempoRestanteSegundos.value = Math.ceil(restanteMs / 1000)
+      }
+    }
+
+    calcularRestante()
+    if (tiempoRestanteSegundos.value > 0) {
+      timerInterval = setInterval(calcularRestante, 1000)
+    }
+  }
+
+  // --- GETTERS / MÉTRICAS DEL DASHBOARD ---
+  const totalCatalogo = computed(() => catalogo.value.length)
+  const totalObtenidas = computed(() => miColeccion.value.filter(item => item && item.cantidad > 0).length)
+  const totalFaltantes = computed(() => Math.max(0, totalCatalogo.value - totalObtenidas.value))
+  const totalRepetidas = computed(() => {
+    return miColeccion.value.reduce((acc, item) => {
+      return acc + (item && item.cantidad > 1 ? item.cantidad - 1 : 0)
+    }, 0)
+  })
+  const porcentajeCompletado = computed(() => {
+    if (totalCatalogo.value === 0) return 0
+    return Math.round((totalObtenidas.value / totalCatalogo.value) * 100)
+  })
+
   const figuritasProcesadas = computed(() => {
-    // Mapa auxiliar O(1) de cantidades en propiedad del usuario
     const mapaCantidades = {}
     miColeccion.value.forEach(item => {
       if (item && item.figurita_id) {
@@ -27,24 +101,19 @@ export const useAlbumStore = defineStore('album', () => {
       }
     })
 
-    // Incrustamos 'cantidad' y el nuevo flag 'esNueva'
     let resultado = catalogo.value.map(fig => {
       const figIdStr = String(fig.id)
       const cantidadTotal = mapaCantidades[figIdStr] || 0
       const cantidadGanadaEnSobre = resumenSobreActual.value[figIdStr] || 0
-
-      // ES NUEVA si vino en este sobre Y la cantidad total acumulada es igual a lo que tocó en este sobre 
-      // (lo que garantiza que antes del sobre el usuario tenía exactamente 0 copias).
       const esPrimeraVez = cantidadGanadaEnSobre > 0 && cantidadTotal === cantidadGanadaEnSobre
 
       return {
         ...fig,
         cantidad: cantidadTotal,
-        esNueva: esPrimeraVez // Flag volátil: se borra al presionar F5 o recargar
+        esNueva: esPrimeraVez
       }
     })
 
-    // 1. Filtrar por texto
     const texto = filtros.value.busqueda.trim().toLowerCase()
     if (texto) {
       resultado = resultado.filter(f =>
@@ -55,12 +124,9 @@ export const useAlbumStore = defineStore('album', () => {
       )
     }
 
-    // 2. Ordenar dinámicamente
     resultado.sort((a, b) => {
       const criterio = filtros.value.ordenarPor
-      if (criterio === 'numero') {
-        return a.numero - b.numero
-      }
+      if (criterio === 'numero') return a.numero - b.numero
       const valA = (a[criterio] || '').toString().toLowerCase()
       const valB = (b[criterio] || '').toString().toLowerCase()
       return valA.localeCompare(valB)
@@ -69,7 +135,7 @@ export const useAlbumStore = defineStore('album', () => {
     return resultado
   })
 
-  // Acciones
+  // --- ACCIONES ---
   async function cargarDatosAlbum(userId) {
     if (!userId) return
     loading.value = true
@@ -81,6 +147,7 @@ export const useAlbumStore = defineStore('album', () => {
       ])
       catalogo.value = listaFiguritas
       miColeccion.value = coleccionUsuario
+      iniciarTimer() // Inicializar timer al cargar
     } catch (err) {
       error.value = err.response?.data?.message || err.message || 'Error al cargar los datos del álbum'
     } finally {
@@ -89,7 +156,7 @@ export const useAlbumStore = defineStore('album', () => {
   }
 
   async function abrirSobreDiario(userId) {
-    if (!userId) return
+    if (!userId || cooldownActivo.value) return
     loading.value = true
     error.value = null
     try {
@@ -97,11 +164,9 @@ export const useAlbumStore = defineStore('album', () => {
         catalogo.value = await figuritasService.listar()
       }
 
-      // 1. Abre el sobre e impacta en Supabase (retorna los 5 ítems obtenidos)
+      // 1. Reclamar el sobre aleatorio
       const sobresObtenidos = await albumService.abrirSobreAleatorio(userId, catalogo.value)
 
-      // 2. Mapeamos cuántas copias de cada figurita vinieron en ESTE sobre puntual
-      // Ejemplo: { "uuid-messi": 2, "uuid-neymar": 1 }
       const conteoUltimoSobre = {}
       sobresObtenidos.forEach(f => {
         const key = String(f.id)
@@ -109,13 +174,18 @@ export const useAlbumStore = defineStore('album', () => {
       })
       resumenSobreActual.value = conteoUltimoSobre
 
-      // 3. Trae la colección actualizada de la base de datos
       miColeccion.value = await albumService.obtenerColeccion(userId)
 
-      // 4. Notificación global reactiva
       if (sobresObtenidos.length > 0) {
         sobreMensaje.value = sobresObtenidos
       }
+
+      // 2. Guardar timestamp actual y reiniciar cooldown
+      const ahora = Date.now()
+      ultimoReclamoTime.value = ahora
+      localStorage.setItem('ultimo_reclamo_sobre', ahora.toString())
+      iniciarTimer()
+
     } catch (err) {
       error.value = err.response?.data?.message || err.message || 'Error al abrir el sobre diario'
     } finally {
@@ -140,6 +210,13 @@ export const useAlbumStore = defineStore('album', () => {
     loading,
     error,
     filtros,
+    cooldownActivo,
+    cooldownFormateado,
+    totalCatalogo,
+    totalObtenidas,
+    totalFaltantes,
+    totalRepetidas,
+    porcentajeCompletado,
     figuritasProcesadas,
     cargarDatosAlbum,
     abrirSobreDiario,

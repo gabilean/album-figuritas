@@ -3,6 +3,7 @@ import { useAuth } from '@/composables/useAuth'
 import AdminFiguritasView from '@/views/AdminFiguritasView.vue'
 import AdminUsuariosView from '@/views/AdminUsuariosView.vue'
 import MiAlbumView from '@/views/MiAlbumView.vue'
+import DashboardView from '@/views/DashboardView.vue'
 import LoginView from '@/views/LoginView.vue'
 import RegistroView from '@/views/RegistroView.vue'
 
@@ -30,7 +31,7 @@ const routes = [
   {
     path: '/dashboard',
     name: 'dashboard',
-    component: MiAlbumView,
+    component: DashboardView,
     meta: { requireAuth: true }
   },
   {
@@ -76,5 +77,4 @@ router.beforeEach(async (to) => {
   }
 })
 
-// Exportación por defecto para coincidir con `import router from './router'` en main.js
 export default router
