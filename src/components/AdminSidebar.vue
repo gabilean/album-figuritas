@@ -18,6 +18,8 @@ async function ejecutarLogout() {
 async function reclamarSobre() {
   if (perfil.value?.id) {
     await abrirSobreDiario(perfil.value.id)
+  } else {
+    console.warn('No se encontró el ID del usuario logueado en perfil')
   }
 }
 </script>

@@ -8,6 +8,7 @@ const {
   loading,
   error,
   filtros,
+  sobreMensaje,
   figuritasProcesadas,
   cargarDatosAlbum
 } = useAlbum()
@@ -33,6 +34,21 @@ function limpiarFiltros() {
     </div>
 
     <main class="main-content-inner">
+     <!-- Banner de Recompensa del Sobre -->
+      <div v-if="sobreMensaje && sobreMensaje.length" class="banner-sobre-exito">
+        <div class="banner-contenido">
+          <h3>🎉 ¡Abriste un sobre con 5 figuritas!</h3>
+          <ul>
+            <li v-for="fig in sobreMensaje" :key="fig.id">
+              #{{ fig.numero }} <strong>{{ fig.nombre_jugador }}</strong> ({{ fig.pais }})
+            </li>
+          </ul>
+          <button type="button" class="btn btn-secondary btn-sm" @click="sobreMensaje = null">
+            Cerrar
+          </button>
+        </div>
+      </div>
+
       <!-- Barra de Filtros -->
       <section class="search-section">
         <input
@@ -66,7 +82,7 @@ function limpiarFiltros() {
       <p v-if="loading">Cargando tu colección...</p>
       <p v-if="error" class="error-msg">{{ error }}</p>
 
-      <!-- Grilla Visual con Reactividad Directa -->
+      <!-- Grilla Visual (Evaluación Reactiva Directa) -->
       <section v-if="!loading && figuritasProcesadas.length" class="grid-figuritas">
         <article
           v-for="fig in figuritasProcesadas"
@@ -100,7 +116,7 @@ function limpiarFiltros() {
             <span class="posicion">Posición: {{ fig.posicion || 'N/A' }}</span>
           </div>
 
-          <!-- Pie de tarjeta leyendo 'fig.cantidad' reactivo -->
+          <!-- Conexión reactiva instantánea por 'fig.cantidad' -->
           <div class="card-footer-status">
             <span v-if="fig.cantidad === 0" class="status-badge status-faltante">
               Faltante (0)

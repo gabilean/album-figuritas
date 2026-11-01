@@ -7,6 +7,7 @@ export function useAlbum() {
   const miColeccion = ref([])
   const loading = ref(false)
   const error = ref(null)
+  const sobreMensaje = ref(null) // Notificación reactiva del sobre abierto
 
   const filtros = reactive({
     busqueda: '',
@@ -43,26 +44,27 @@ export function useAlbum() {
     }, 'Error al cargar los datos del álbum')
   }
 
+  // Función de apertura de sobre con refresco reactivo garantizado
   async function abrirSobreDiario(userId) {
     let sobresRegalados = []
     
     const ok = await ejecutarAccion(async () => {
+      // 1. Asegurar catálogo cargado
       if (catalogo.value.length === 0) {
         catalogo.value = await figuritasService.listar()
       }
       
-      // 1. Abrir sobre e impactar en Supabase
+      // 2. Ejecutar apertura aleatoria en Supabase
       sobresRegalados = await albumService.abrirSobreAleatorio(userId, catalogo.value)
       
-      // 2. Refrescar colección
+      // 3. Traer la colección nueva y reasignar array para Vue 3
       const nuevaColeccion = await albumService.obtenerColeccion(userId)
-      miColeccion.value = nuevaColeccion
+      miColeccion.value = [...nuevaColeccion]
     }, 'Error al abrir el sobre diario')
 
-    // 3. Notificación con el alert
     if (ok && sobresRegalados.length > 0) {
-      const nombres = sobresRegalados.map(f => `#${f.numero} ${f.nombre_jugador}`).join('\n• ')
-      alert(`🎉 ¡Abriste un sobre con 5 figuritas!\n\nTe tocaron:\n• ${nombres}`)
+      // Reasignación reactiva explícita para activar el v-if en la plantilla
+      sobreMensaje.value = [...sobresRegalados]
     }
   }
 
@@ -74,25 +76,23 @@ export function useAlbum() {
     }
   )
 
-  function obtenerCantidad(figuritaId) {
-    const item = miColeccion.value.find(i => i.figurita_id === figuritaId)
-    return item ? item.cantidad : 0
-  }
-
-  // Mapa reactivo de figuritas procesadas CON su cantidad inyectada
+  // Mapeo dinámico y reactivo que inyecta la propiedad 'cantidad' a cada figurita
   const figuritasProcesadas = computed(() => {
-    // Mapa auxiliar para búsqueda rápida O(1)
+    // Mapa auxiliar O(1) convirtiendo la clave a String para evitar discrepancias de UUID/int
     const mapaCantidades = {}
     miColeccion.value.forEach(item => {
-      mapaCantidades[item.figurita_id] = item.cantidad
+      if (item && item.figurita_id) {
+        mapaCantidades[String(item.figurita_id)] = item.cantidad
+      }
     })
 
-    // Clonamos y enriquecemos cada figurita con su propiedad 'cantidad'
+    // Incrustar 'cantidad' directamente en el objeto computado
     let resultado = catalogo.value.map(fig => ({
       ...fig,
-      cantidad: mapaCantidades[fig.id] || 0
+      cantidad: mapaCantidades[String(fig.id)] || 0
     }))
 
+    // Filtrar por texto de búsqueda
     const texto = filtros.busqueda.trim().toLowerCase()
     if (texto) {
       resultado = resultado.filter(f =>
@@ -103,6 +103,7 @@ export function useAlbum() {
       )
     }
 
+    // Ordenar dinámicamente
     resultado.sort((a, b) => {
       const criterio = filtros.ordenarPor
       if (criterio === 'numero') {
@@ -122,9 +123,9 @@ export function useAlbum() {
     loading,
     error,
     filtros,
+    sobreMensaje,
     figuritasProcesadas,
     cargarDatosAlbum,
-    obtenerCantidad,
     abrirSobreDiario
   }
 }
