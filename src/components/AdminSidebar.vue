@@ -9,6 +9,7 @@ const { perfil, esAdmin, logout } = useAuth()
 const albumStore = useAlbumStore()
 
 const menuAbierto = ref(false)
+const menuMovilAbierto = ref(false) // Estado para abrir/cerrar en móvil
 
 async function ejecutarLogout() {
   await logout()
@@ -18,12 +19,31 @@ async function ejecutarLogout() {
 async function reclamarSobre() {
   if (perfil.value?.id) {
     await albumStore.abrirSobreDiario(perfil.value.id)
+    menuMovilAbierto.value = false // Cerrar al presionar
   }
 }
 </script>
 
 <template>
-  <aside class="sidebar-admin">
+  <!-- Botón Hamburguesa Flotante para Móviles -->
+  <button 
+    type="button" 
+    class="btn-hamburger-mobile" 
+    @click="menuMovilAbierto = !menuMovilAbierto"
+    aria-label="Toggle Menu"
+  >
+    {{ menuMovilAbierto ? '✕' : '☰' }}
+  </button>
+
+  <!-- Overlay para cerrar al hacer clic afuera en móviles -->
+  <div 
+    v-if="menuMovilAbierto" 
+    class="sidebar-overlay" 
+    @click="menuMovilAbierto = false"
+  ></div>
+
+  <!-- Sidebar Lateral con clase dinámica para mobile -->
+  <aside class="sidebar-admin" :class="{ 'is-open-mobile': menuMovilAbierto }">
     <div class="sidebar-brand">
       <div class="logo-circle">C</div>
     </div>
@@ -40,24 +60,23 @@ async function reclamarSobre() {
         </button>
 
         <div v-if="menuAbierto" class="submenu">
-          <router-link to="/admin/usuarios" class="submenu-item" active-class="active">
+          <router-link to="/admin/usuarios" class="submenu-item" active-class="active" @click="menuMovilAbierto = false">
             Usuarios
           </router-link>
-          <router-link to="/admin/figuritas" class="submenu-item" active-class="active">
+          <router-link to="/admin/figuritas" class="submenu-item" active-class="active" @click="menuMovilAbierto = false">
             Figuritas
           </router-link>
         </div>
       </template>
 
       <template v-else>
-        <router-link to="/dashboard" class="sidebar-item" active-class="active">
+        <router-link to="/dashboard" class="sidebar-item" active-class="active" @click="menuMovilAbierto = false">
           Dashboard
         </router-link>
-        <router-link to="/mi-album" class="sidebar-item" active-class="active">
+        <router-link to="/mi-album" class="sidebar-item" active-class="active" @click="menuMovilAbierto = false">
           Mi Álbum
         </router-link>
 
-        <!-- Botón con timer de cooldown dinámico -->
         <button
           type="button"
           class="btn-sobre-diario"

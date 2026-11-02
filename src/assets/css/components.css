@@ -57,11 +57,16 @@
   flex-direction: column;
   justify-content: space-between;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), 
+              box-shadow 0.3s ease, 
+              border-color 0.3s ease;
 }
 
 .card-figurita:hover {
-  transform: translateY(-2px);
+  transform: translateY(-20px) scale(1.02);
+  border-color: var(--color-accent);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4), 
+              0 0 15px rgba(112, 169, 161, 0.4); /* Resplandor neón verde agua */
 }
 
 /* Estado visual para figurita no obtenida */
@@ -71,9 +76,9 @@
 }
 
 .card-figurita.es-especial {
-  border: 2px solid var(--color-gold);
-  background-color: var(--color-bg-card);
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+  border-color: var(--color-gold);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4), 
+              0 0 20px rgba(255, 215, 0, 0.5); /* Resplandor dorado extra */
 }
 
 .card-header {
