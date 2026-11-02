@@ -3,7 +3,6 @@ import { defineStore } from 'pinia'
 import { albumService } from '@/services/albumService'
 import { figuritasService } from '@/services/figuritasService'
 
-// ⚙️ CONFIGURACIÓN FÁCIL DEL TIMER (Cambiá este valor según tus necesidades)
 // Ejemplos: 24 (para 24 horas real), 1 (1 hora), 0.0833 (5 minutos), 0.0166 (1 minuto)
 const TIEMPO_COOLDOWN_HORAS = 0.0833 
 
