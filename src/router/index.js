@@ -51,7 +51,14 @@ const routes = [
     name: 'admin-usuarios',
     component: AdminUsuariosView,
     meta: { requireAuth: true, requireAdmin: true }
+  },
+  {
+    path: '/intercambios',
+    name: 'intercambios',
+    component: () => import('@/views/IntercambiosView.vue'),
+    meta: { requireAuth: true }
   }
+
 ]
 
 export const router = createRouter({

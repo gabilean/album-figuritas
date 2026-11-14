@@ -454,3 +454,193 @@
   font-size: 1.05rem;
   font-weight: 700;
 }
+
+/* =========================================================================
+   MÓDULO DE INTERCAMBIOS (1x1)
+   ========================================================================= */
+.intercambios-tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.checkbox-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: var(--color-text-light);
+  font-weight: 500;
+}
+
+.alert-error-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  border-radius: 6px;
+  background-color: rgba(217, 83, 79, 0.15);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+}
+
+.grid-intercambios {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.25rem;
+}
+
+.card-intercambio {
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
+}
+
+.card-intercambio.intercambio-disponible {
+  border-color: var(--color-success);
+  box-shadow: 0 4px 12px rgba(158, 193, 163, 0.15);
+}
+
+.intercambio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  gap: 0.5rem;
+}
+
+.intercambio-header strong {
+  color: var(--color-text-light);
+}
+
+.intercambio-cuerpo {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.intercambio-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.4rem;
+  padding: 0.75rem;
+  background-color: var(--color-bg-main);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.intercambio-slot strong {
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+}
+
+.slot-titulo {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.mini-slot-img {
+  width: 75px;
+  height: 95px;
+  margin-bottom: 0.25rem;
+}
+
+.intercambio-separador {
+  font-weight: 800;
+  color: var(--color-accent);
+  font-size: 0.95rem;
+}
+
+.card-figurita.carta-seleccionada {
+  border: 2px solid var(--color-warning);
+  background-color: rgba(224, 169, 109, 0.25);
+  box-shadow: 0 0 18px rgba(64, 121, 140, 0.65);
+  transform: translateY(-6px);
+}
+
+.badge-stock-intercambio {
+  background-color: rgba(64, 121, 140, 0.25);
+  color: var(--color-text-light);
+  border: 1px solid var(--color-primary);
+}
+
+.intercambio-resumen-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 1.25rem;
+  align-items: center;
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.aviso-cancelacion-sobre {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 6px;
+  background-color: rgba(64, 121, 140, 0.25);
+  border: 1px solid var(--color-primary);
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+}
+
+.resumen-paso {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.resumen-paso p {
+  margin: 0;
+  color: var(--color-text-light);
+}
+
+.resumen-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card-seleccionable {
+  cursor: pointer;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.empty-message {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-muted);
+}
+
+.empty-message p {
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .intercambio-resumen-bar {
+    grid-template-columns: 1fr;
+  }
+}

@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { albumService } from '@/services/albumService'
 import { figuritasService } from '@/services/figuritasService'
+import { intercambiosService } from '@/services/intercambiosService'
 
 // Ejemplos: 24 (para 24 horas real), 1 (1 hora), 0.0833 (5 minutos), 0.0166 (1 minuto)
 const TIEMPO_COOLDOWN_HORAS = 0.0833 
@@ -14,6 +15,11 @@ export const useAlbumStore = defineStore('album', () => {
   const resumenSobreActual = ref({})
   const loading = ref(false)
   const error = ref(null)
+
+  // Estado del Módulo de Intercambios
+  const intercambios = ref([])
+  const cargandoIntercambios = ref(false)
+  const intercambiosCanceladosAuto = ref([])
 
   // Estado del Timer
   const ultimoReclamoTime = ref(Number(localStorage.getItem('ultimo_reclamo_sobre')) || 0)
@@ -28,10 +34,8 @@ export const useAlbumStore = defineStore('album', () => {
   // --- GETTERS / COMPUTADAS DEL TIMER ---
   const duracionCooldownMs = computed(() => TIEMPO_COOLDOWN_HORAS * 60 * 60 * 1000)
 
-  // Determina si el botón debe estar deshabilitado por el timer
   const cooldownActivo = computed(() => tiempoRestanteSegundos.value > 0)
 
-  // Formatea los segundos a hh:mm:ss o mm:ss de forma amigable
   const cooldownFormateado = computed(() => {
     const totalSecs = tiempoRestanteSegundos.value
     if (totalSecs <= 0) return ''
@@ -50,7 +54,6 @@ export const useAlbumStore = defineStore('album', () => {
     return `${mm}:${ss}`
   })
 
-  // Iniciar la cuenta regresiva por segundo
   function iniciarTimer() {
     clearInterval(timerInterval)
 
@@ -134,7 +137,23 @@ export const useAlbumStore = defineStore('album', () => {
     return resultado
   })
 
-  // --- ACCIONES ---
+  // --- GETTER / INTERCAMBIOS HIDRATADOS CON EL CATÁLOGO ---
+  const intercambiosEnriquecidos = computed(() => {
+    const mapaCatalogo = {}
+    catalogo.value.forEach(fig => {
+      if (fig && fig.id) {
+        mapaCatalogo[String(fig.id)] = fig
+      }
+    })
+
+    return intercambios.value.map(item => ({
+      ...item,
+      figurita_buscada: mapaCatalogo[String(item.figurita_buscada_id)] || null,
+      figurita_ofrecida: mapaCatalogo[String(item.figurita_ofrecida_id)] || null
+    }))
+  })
+
+  // --- ACCIONES DEL ÁLBUM ---
   async function cargarDatosAlbum(userId) {
     if (!userId) return
     loading.value = true
@@ -146,7 +165,7 @@ export const useAlbumStore = defineStore('album', () => {
       ])
       catalogo.value = listaFiguritas
       miColeccion.value = coleccionUsuario
-      iniciarTimer() // Inicializar timer al cargar
+      iniciarTimer()
     } catch (err) {
       error.value = err.response?.data?.message || err.message || 'Error al cargar los datos del álbum'
     } finally {
@@ -158,12 +177,13 @@ export const useAlbumStore = defineStore('album', () => {
     if (!userId || cooldownActivo.value) return
     loading.value = true
     error.value = null
+    intercambiosCanceladosAuto.value = []
+
     try {
       if (catalogo.value.length === 0) {
         catalogo.value = await figuritasService.listar()
       }
 
-      // 1. Reclamar el sobre aleatorio
       const sobresObtenidos = await albumService.abrirSobreAleatorio(userId, catalogo.value)
 
       const conteoUltimoSobre = {}
@@ -175,11 +195,33 @@ export const useAlbumStore = defineStore('album', () => {
 
       miColeccion.value = await albumService.obtenerColeccion(userId)
 
+      // --- CANCELACIÓN AUTOMÁTICA DE PEDIDOS SI TOCÓ LA FIGURITA BUSCADA ---
       if (sobresObtenidos.length > 0) {
         sobreMensaje.value = sobresObtenidos
+
+        const idsObtenidos = new Set(sobresObtenidos.map(f => String(f.id)))
+
+        if (intercambios.value.length === 0) {
+          await cargarIntercambios()
+        }
+
+        const pedidosACancelar = intercambios.value.filter(
+          item =>
+            item.creador_id === userId &&
+            item.estado === 'pendiente' &&
+            idsObtenidos.has(String(item.figurita_buscada_id))
+        )
+
+        if (pedidosACancelar.length > 0) {
+          await Promise.all(pedidosACancelar.map(p => intercambiosService.cancelar(p.id)))
+          intercambiosCanceladosAuto.value = pedidosACancelar.map(p => {
+            const fig = catalogo.value.find(c => String(c.id) === String(p.figurita_buscada_id))
+            return fig ? `#${fig.numero} ${fig.nombre_jugador}` : 'figurita obtenida'
+          })
+          await cargarIntercambios()
+        }
       }
 
-      // 2. Guardar timestamp actual y reiniciar cooldown
       const ahora = Date.now()
       ultimoReclamoTime.value = ahora
       localStorage.setItem('ultimo_reclamo_sobre', ahora.toString())
@@ -199,6 +241,45 @@ export const useAlbumStore = defineStore('album', () => {
 
   function cerrarBanner() {
     sobreMensaje.value = null
+    intercambiosCanceladosAuto.value = []
+  }
+
+  // --- ACCIONES DEL TABLÓN DE INTERCAMBIOS (1x1) ---
+  async function cargarIntercambios() {
+    cargandoIntercambios.value = true
+    try {
+      const data = await intercambiosService.listarPendientes()
+      intercambios.value = data || []
+    } catch (err) {
+      console.error('Error al cargar intercambios:', err)
+      throw err
+    } finally {
+      cargandoIntercambios.value = false
+    }
+  }
+
+  async function crearPedidoIntercambio(userId, creadorNombre, figuritaBuscadaId, figuritaOfrecidaId) {
+    if (!userId) throw new Error('Debés iniciar sesión para publicar un intercambio.')
+    await intercambiosService.crear(
+      userId,
+      creadorNombre || 'Coleccionista',
+      figuritaBuscadaId,
+      figuritaOfrecidaId
+    )
+    await cargarIntercambios()
+  }
+
+  async function cancelarIntercambio(intercambioId) {
+    await intercambiosService.cancelar(intercambioId)
+    await cargarIntercambios()
+  }
+
+  async function aceptarIntercambio(intercambioId, userId) {
+    await intercambiosService.aceptar(intercambioId)
+    if (userId) {
+      await cargarDatosAlbum(userId)
+    }
+    await cargarIntercambios()
   }
 
   return {
@@ -217,9 +298,17 @@ export const useAlbumStore = defineStore('album', () => {
     totalRepetidas,
     porcentajeCompletado,
     figuritasProcesadas,
+    intercambiosEnriquecidos,
+    intercambiosCanceladosAuto,
     cargarDatosAlbum,
     abrirSobreDiario,
     limpiarFiltros,
-    cerrarBanner
+    cerrarBanner,
+    intercambios,
+    cargandoIntercambios,
+    cargarIntercambios,
+    crearPedidoIntercambio,
+    cancelarIntercambio,
+    aceptarIntercambio
   }
 })

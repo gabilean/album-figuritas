@@ -76,6 +76,9 @@ async function reclamarSobre() {
         <router-link to="/mi-album" class="sidebar-item" active-class="active" @click="menuMovilAbierto = false">
           Mi Álbum
         </router-link>
+        <router-link to="/intercambios" class="sidebar-item" active-class="active" @click="menuMovilAbierto = false">
+          Intercambios
+        </router-link>
 
         <button
           type="button"

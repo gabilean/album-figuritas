@@ -30,6 +30,10 @@ onMounted(() => {
               #{{ fig.numero }} <strong>{{ fig.nombre_jugador }}</strong> ({{ fig.pais }})
             </li>
           </ul>
+          <p v-if="albumStore.intercambiosCanceladosAuto.length" class="aviso-cancelacion-sobre">
+            Se canceló el pedido automáticamente porque la obtuviste con este sobre:
+            <strong>{{ albumStore.intercambiosCanceladosAuto.join(', ') }}</strong>.
+          </p>
           <button type="button" class="btn btn-secondary btn-sm" @click="albumStore.cerrarBanner">
             Cerrar
           </button>
