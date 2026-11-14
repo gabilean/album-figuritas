@@ -89,5 +89,25 @@ export const albumService = {
     }
 
     return sobresObtenidos
+  },
+
+  /**
+   * Obtiene el timestamp del último sobre diario reclamado por el usuario desde profiles.
+   */
+  async obtenerUltimoReclamo(userId) {
+    const { data } = await api.get('/profiles', {
+      params: {
+        select: 'ultimo_reclamo_sobre',
+        id: `eq.${userId}`
+      }
+    })
+    return data?.[0]?.ultimo_reclamo_sobre || null
+  },
+
+  async validarYRegistrarReclamo(cooldownSegundos) {
+    const { data } = await api.post('/rpc/reclamar_sobre_diario', {
+      p_cooldown_segundos: Math.round(cooldownSegundos)
+    })
+    return data
   }
 }

@@ -25,7 +25,7 @@ export const useAlbumStore = defineStore('album', () => {
   const procesandoCrafteo = ref(false)
 
   // Estado del Timer
-  const ultimoReclamoTime = ref(Number(localStorage.getItem('ultimo_reclamo_sobre')) || 0)
+  const ultimoReclamoTime = ref(0)
   const tiempoRestanteSegundos = ref(0)
   let timerInterval = null
 
@@ -158,85 +158,72 @@ export const useAlbumStore = defineStore('album', () => {
 
   // --- ACCIONES DEL ÁLBUM ---
   async function cargarDatosAlbum(userId) {
-  if (!userId) return
-  loading.value = true
-  error.value = null
-  try {
-    const [listaFiguritas, coleccionUsuario, puntos] = await Promise.all([
-      figuritasService.listar(),
-      albumService.obtenerColeccion(userId),
-      crafteoService.obtenerPuntos(userId)
-    ])
-    catalogo.value = listaFiguritas
-    miColeccion.value = coleccionUsuario
-    puntosCrafteo.value = puntos
-    iniciarTimer()
-  } catch (err) {
-    error.value = err.response?.data?.message || err.message || 'Error al cargar los datos del álbum'
-  } finally {
-    loading.value = false
-  }
+    if (!userId) return
+    loading.value = true
+    error.value = null
+    try {
+      const [listaFiguritas, coleccionUsuario, puntos, ultimoReclamoIso] = await Promise.all([
+        figuritasService.listar(),
+        albumService.obtenerColeccion(userId),
+        crafteoService.obtenerPuntos(userId),
+        albumService.obtenerUltimoReclamo(userId)
+      ])
+      catalogo.value = listaFiguritas
+      miColeccion.value = coleccionUsuario
+      puntosCrafteo.value = puntos
+      ultimoReclamoTime.value = ultimoReclamoIso ? new Date(ultimoReclamoIso).getTime() : 0
+      iniciarTimer()
+    } catch (err) {
+      error.value = err.response?.data?.message || err.message || 'Error al cargar los datos del álbum'
+    } finally {
+      loading.value = false
+    }
 }
 
   async function abrirSobreDiario(userId) {
     if (!userId || cooldownActivo.value) return
-    loading.value = true
-    error.value = null
-    intercambiosCanceladosAuto.value = []
+  loading.value = true
+  error.value = null
+  intercambiosCanceladosAuto.value = []
 
-    try {
-      if (catalogo.value.length === 0) {
-        catalogo.value = await figuritasService.listar()
-      }
+  try {
+    // 1. Validar cooldown en PostgreSQL (bloquea incógnito, múltiples pestañas o manipulación local)
+    const cooldownSegundos = Math.round(TIEMPO_COOLDOWN_HORAS * 3600)
+    const fechaServidorIso = await albumService.validarYRegistrarReclamo(cooldownSegundos)
 
-      const sobresObtenidos = await albumService.abrirSobreAleatorio(userId, catalogo.value)
+    ultimoReclamoTime.value = new Date(fechaServidorIso).getTime()
+    iniciarTimer()
 
-      const conteoUltimoSobre = {}
-      sobresObtenidos.forEach(f => {
-        const key = String(f.id)
-        conteoUltimoSobre[key] = (conteoUltimoSobre[key] || 0) + 1
-      })
-      resumenSobreActual.value = conteoUltimoSobre
-
-      miColeccion.value = await albumService.obtenerColeccion(userId)
-
-      // --- CANCELACIÓN AUTOMÁTICA DE PEDIDOS SI TOCÓ LA FIGURITA BUSCADA ---
-      if (sobresObtenidos.length > 0) {
-        sobreMensaje.value = sobresObtenidos
-
-        const idsObtenidos = new Set(sobresObtenidos.map(f => String(f.id)))
-
-        if (intercambios.value.length === 0) {
-          await cargarIntercambios()
-        }
-
-        const pedidosACancelar = intercambios.value.filter(
-          item =>
-            item.creador_id === userId &&
-            item.estado === 'pendiente' &&
-            idsObtenidos.has(String(item.figurita_buscada_id))
-        )
-
-        if (pedidosACancelar.length > 0) {
-          await Promise.all(pedidosACancelar.map(p => intercambiosService.cancelar(p.id)))
-          intercambiosCanceladosAuto.value = pedidosACancelar.map(p => {
-            const fig = catalogo.value.find(c => String(c.id) === String(p.figurita_buscada_id))
-            return fig ? `#${fig.numero} ${fig.nombre_jugador}` : 'figurita obtenida'
-          })
-          await cargarIntercambios()
-        }
-      }
-
-      const ahora = Date.now()
-      ultimoReclamoTime.value = ahora
-      localStorage.setItem('ultimo_reclamo_sobre', ahora.toString())
-      iniciarTimer()
-
-    } catch (err) {
-      error.value = err.response?.data?.message || err.message || 'Error al abrir el sobre diario'
-    } finally {
-      loading.value = false
+    // 2. Asegurar catálogo y abrir las 5 figuritas
+    if (catalogo.value.length === 0) {
+      catalogo.value = await figuritasService.listar()
     }
+
+    const sobresObtenidos = await albumService.abrirSobreAleatorio(userId, catalogo.value)
+
+    const conteoUltimoSobre = {}
+    sobresObtenidos.forEach(f => {
+      const key = String(f.id)
+      conteoUltimoSobre[key] = (conteoUltimoSobre[key] || 0) + 1
+    })
+    resumenSobreActual.value = conteoUltimoSobre
+
+    miColeccion.value = await albumService.obtenerColeccion(userId)
+
+    if (sobresObtenidos.length > 0) {
+      sobreMensaje.value = sobresObtenidos
+      const idsObtenidos = new Set(sobresObtenidos.map(f => String(f.id)))
+      await verificarYCancelarPedidosObtenidos(userId, idsObtenidos)
+    }
+  } catch (err) {
+    error.value = err.response?.data?.message || err.message || 'Error al abrir el sobre diario'
+    // Si falló por cooldown desincronizado, recargar el timestamp oficial del servidor
+    const ultimoReclamoIso = await albumService.obtenerUltimoReclamo(userId)
+    ultimoReclamoTime.value = ultimoReclamoIso ? new Date(ultimoReclamoIso).getTime() : 0
+    iniciarTimer()
+  } finally {
+    loading.value = false
+  }
   }
 
   function limpiarFiltros() {
