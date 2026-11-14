@@ -57,6 +57,12 @@ const routes = [
     name: 'intercambios',
     component: () => import('@/views/IntercambiosView.vue'),
     meta: { requireAuth: true }
+  },
+  {
+    path: '/crafteo',
+    name: 'crafteo',
+    component: () => import('@/views/CrafteoView.vue'),
+    meta: { requireAuth: true }
   }
 
 ]

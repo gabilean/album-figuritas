@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { albumService } from '@/services/albumService'
 import { figuritasService } from '@/services/figuritasService'
 import { intercambiosService } from '@/services/intercambiosService'
+import { crafteoService } from '@/services/crafteoService'
 
 // Ejemplos: 24 (para 24 horas real), 1 (1 hora), 0.0833 (5 minutos), 0.0166 (1 minuto)
 const TIEMPO_COOLDOWN_HORAS = 0.0833 
@@ -20,6 +21,8 @@ export const useAlbumStore = defineStore('album', () => {
   const intercambios = ref([])
   const cargandoIntercambios = ref(false)
   const intercambiosCanceladosAuto = ref([])
+  const puntosCrafteo = ref(0)
+  const procesandoCrafteo = ref(false)
 
   // Estado del Timer
   const ultimoReclamoTime = ref(Number(localStorage.getItem('ultimo_reclamo_sobre')) || 0)
@@ -155,23 +158,25 @@ export const useAlbumStore = defineStore('album', () => {
 
   // --- ACCIONES DEL ÁLBUM ---
   async function cargarDatosAlbum(userId) {
-    if (!userId) return
-    loading.value = true
-    error.value = null
-    try {
-      const [listaFiguritas, coleccionUsuario] = await Promise.all([
-        figuritasService.listar(),
-        albumService.obtenerColeccion(userId)
-      ])
-      catalogo.value = listaFiguritas
-      miColeccion.value = coleccionUsuario
-      iniciarTimer()
-    } catch (err) {
-      error.value = err.response?.data?.message || err.message || 'Error al cargar los datos del álbum'
-    } finally {
-      loading.value = false
-    }
+  if (!userId) return
+  loading.value = true
+  error.value = null
+  try {
+    const [listaFiguritas, coleccionUsuario, puntos] = await Promise.all([
+      figuritasService.listar(),
+      albumService.obtenerColeccion(userId),
+      crafteoService.obtenerPuntos(userId)
+    ])
+    catalogo.value = listaFiguritas
+    miColeccion.value = coleccionUsuario
+    puntosCrafteo.value = puntos
+    iniciarTimer()
+  } catch (err) {
+    error.value = err.response?.data?.message || err.message || 'Error al cargar los datos del álbum'
+  } finally {
+    loading.value = false
   }
+}
 
   async function abrirSobreDiario(userId) {
     if (!userId || cooldownActivo.value) return
@@ -281,6 +286,91 @@ export const useAlbumStore = defineStore('album', () => {
     }
     await cargarIntercambios()
   }
+  async function verificarYCancelarPedidosObtenidos(userId, idsObtenidosSet) {
+  if (intercambios.value.length === 0) {
+    await cargarIntercambios()
+  }
+
+  const pedidosACancelar = intercambios.value.filter(
+    item =>
+      item.creador_id === userId &&
+      item.estado === 'pendiente' &&
+      idsObtenidosSet.has(String(item.figurita_buscada_id))
+  )
+
+  if (pedidosACancelar.length > 0) {
+    await Promise.all(pedidosACancelar.map(p => intercambiosService.cancelar(p.id)))
+    intercambiosCanceladosAuto.value = pedidosACancelar.map(p => {
+      const fig = catalogo.value.find(c => String(c.id) === String(p.figurita_buscada_id))
+      return fig ? `#${fig.numero} ${fig.nombre_jugador}` : 'figurita obtenida'
+    })
+    await cargarIntercambios()
+  }
+}
+
+// --- ACCIONES DEL MÓDULO DE CRAFTEO ---
+async function reciclarFiguritas(userId, items) {
+  if (!userId || !items.length) return
+  procesandoCrafteo.value = true
+  try {
+    const nuevoSaldo = await crafteoService.reciclar(items)
+    puntosCrafteo.value = nuevoSaldo
+    miColeccion.value = await albumService.obtenerColeccion(userId)
+  } finally {
+    procesandoCrafteo.value = false
+  }
+}
+
+async function canjearSobreCrafteo(userId) {
+  if (!userId) return []
+  procesandoCrafteo.value = true
+  intercambiosCanceladosAuto.value = []
+  try {
+    if (catalogo.value.length === 0) {
+      catalogo.value = await figuritasService.listar()
+    }
+
+    // 1. Descontar 60 puntos en Supabase
+    const nuevoSaldo = await crafteoService.canjear('sobre', null)
+    puntosCrafteo.value = nuevoSaldo
+
+    // 2. Generar las 5 figuritas aleatorias sin tocar el cooldown diario
+    const sobresObtenidos = await albumService.abrirSobreAleatorio(userId, catalogo.value)
+
+    const conteoSobre = {}
+    sobresObtenidos.forEach(f => {
+      const key = String(f.id)
+      conteoSobre[key] = (conteoSobre[key] || 0) + 1
+    })
+    resumenSobreActual.value = conteoSobre
+    miColeccion.value = await albumService.obtenerColeccion(userId)
+
+    if (sobresObtenidos.length > 0) {
+      sobreMensaje.value = sobresObtenidos
+      const idsObtenidos = new Set(sobresObtenidos.map(f => String(f.id)))
+      await verificarYCancelarPedidosObtenidos(userId, idsObtenidos)
+    }
+
+    return sobresObtenidos
+  } finally {
+    procesandoCrafteo.value = false
+  }
+}
+
+async function fabricarFiguritaPuntual(userId, figuritaId) {
+  if (!userId || !figuritaId) return
+  procesandoCrafteo.value = true
+  intercambiosCanceladosAuto.value = []
+  try {
+    const nuevoSaldo = await crafteoService.canjear('figurita', figuritaId)
+    puntosCrafteo.value = nuevoSaldo
+    miColeccion.value = await albumService.obtenerColeccion(userId)
+
+    await verificarYCancelarPedidosObtenidos(userId, new Set([String(figuritaId)]))
+  } finally {
+    procesandoCrafteo.value = false
+  }
+}
 
   return {
     catalogo,
@@ -309,6 +399,11 @@ export const useAlbumStore = defineStore('album', () => {
     cargarIntercambios,
     crearPedidoIntercambio,
     cancelarIntercambio,
-    aceptarIntercambio
+    aceptarIntercambio,
+    puntosCrafteo,
+    procesandoCrafteo,
+    reciclarFiguritas,
+    canjearSobreCrafteo,
+    fabricarFiguritaPuntual
   }
 })

@@ -79,6 +79,9 @@ async function reclamarSobre() {
         <router-link to="/intercambios" class="sidebar-item" active-class="active" @click="menuMovilAbierto = false">
           Intercambios
         </router-link>
+        <router-link to="/crafteo" class="sidebar-item" active-class="active" @click="menuMovilAbierto = false">
+          Crafteo
+        </router-link>
 
         <button
           type="button"
