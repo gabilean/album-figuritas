@@ -29,3 +29,6 @@ dist-ssr
 !.env.example
 supabase/.temp
 supabase/functions/.env
+
+# Archivos SQL temporales generados por scripts
+planteles.sql
