@@ -104,9 +104,10 @@
 }
 
 /* Contenedor de Imagen de Figurita */
+.card-media,
 .card-image-container {
   width: 100%;
-  height: 180px;
+  aspect-ratio: 3 / 4;
   margin-bottom: 0.75rem;
   border-radius: 6px;
   overflow: hidden;
@@ -121,6 +122,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: top center;
 }
 
 .card-img-placeholder {
@@ -839,4 +841,62 @@
 .ia-modal-footer {
   display: flex;
   justify-content: flex-end;
+}
+
+/* =========================================================================
+   MODAL DE EDICIÓN DE FIGURITA (ADMIN ABM)
+   ========================================================================= */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 28, 32, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1100;
+}
+
+.modal-card {
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-primary);
+  border-radius: 10px;
+  max-width: 640px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1.5rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-header h2 {
+  color: var(--color-text-light);
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.btn-cerrar-modal {
+  background: transparent;
+  border: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-text-light);
+  opacity: 0.75;
+  padding: 0.25rem 0.5rem;
+  transition: opacity 0.2s ease;
+}
+
+.btn-cerrar-modal:hover {
+  opacity: 1;
 }

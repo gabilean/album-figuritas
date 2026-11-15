@@ -1,8 +1,8 @@
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { figuritasService } from '@/services/figuritasService'
 
 export function useFiguritas() {
-  const figuritas = ref([])
+  const todasLasFiguritas = ref([])
   const loading = ref(false)
   const error = ref(null)
 
@@ -10,8 +10,6 @@ export function useFiguritas() {
     busqueda: '',
     pais: ''
   })
-
-  let timerDebounce = null
 
   async function ejecutarAccion(tarea, mensajeErrorDefault = 'Error en la operación') {
     loading.value = true
@@ -32,20 +30,29 @@ export function useFiguritas() {
 
   async function cargarFiguritas() {
     return ejecutarAccion(async () => {
-      figuritas.value = await figuritasService.listar(filtros)
+      // Traemos el catálogo completo una sola vez y filtramos reactivamente en memoria
+      todasLasFiguritas.value = await figuritasService.listar({})
     }, 'Error al cargar figuritas')
   }
 
-  // Live search con debounce reutilizando cargarFiguritas
-  watch(
-    () => [filtros.busqueda, filtros.pais],
-    () => {
-      clearTimeout(timerDebounce)
-      timerDebounce = setTimeout(() => {
-        cargarFiguritas()
-      }, 300)
-    }
-  )
+  const figuritas = computed(() => {
+    const termino = (filtros.busqueda || '').trim().toLowerCase()
+
+    return todasLasFiguritas.value.filter((fig) => {
+      if (filtros.pais && fig.pais !== filtros.pais) {
+        return false
+      }
+
+      if (!termino) return true
+
+      const coincideNombre = fig.nombre_jugador?.toLowerCase().includes(termino)
+      const coincidePais = fig.pais?.toLowerCase().includes(termino)
+      const coincidePosicion = fig.posicion?.toLowerCase().includes(termino)
+      const coincideNumero = String(fig.numero) === termino || `#${fig.numero}` === termino
+
+      return coincideNombre || coincidePais || coincidePosicion || coincideNumero
+    })
+  })
 
   async function crearFigurita(datos) {
     return ejecutarAccion(async () => {
