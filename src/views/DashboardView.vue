@@ -80,6 +80,44 @@ function irAlAlbum() {
           </button>
         </section>
       </template>
+
+      <!-- Analizador Estratégico con IA -->
+      <section class="ia-dashboard-panel">
+        <div class="ia-dashboard-header">
+          <div>
+            <h2>Analizador Estratégico de Colección</h2>
+            <p class="posicion">
+              Evaluación personalizada de tus repetidas, puntos de crafteo e intercambios activos
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn btn-primary"
+            :disabled="albumStore.cargandoAnalisisIA || albumStore.catalogo.length === 0"
+            @click="albumStore.generarAnalisisDashboard"
+          >
+            {{
+              albumStore.cargandoAnalisisIA
+                ? 'Analizando colección...'
+                : albumStore.analisisDashboardIA
+                  ? 'Actualizar análisis'
+                  : 'Analizar mi progreso con IA'
+            }}
+          </button>
+        </div>
+
+        <p v-if="albumStore.errorAnalisisIA" class="error-text">
+          {{ albumStore.errorAnalisisIA }}
+        </p>
+
+        <div v-if="albumStore.analisisDashboardIA" class="ia-dashboard-resultado">
+          <p class="ia-texto-preline">{{ albumStore.analisisDashboardIA }}</p>
+        </div>
+
+        <div v-else-if="!albumStore.cargandoAnalisisIA" class="ia-dashboard-placeholder">
+          Presioná el botón para obtener 3 recomendaciones tácticas basadas en el estado actual de tu álbum.
+        </div>
+      </section>
     </main>
   </div>
 </template>

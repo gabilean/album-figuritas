@@ -4,6 +4,7 @@ import { albumService } from '@/services/albumService'
 import { figuritasService } from '@/services/figuritasService'
 import { intercambiosService } from '@/services/intercambiosService'
 import { crafteoService } from '@/services/crafteoService'
+import { iaService } from '@/services/iaService'
 
 // Ejemplos: 24 (para 24 horas real), 1 (1 hora), 0.0833 (5 minutos), 0.0166 (1 minuto)
 const TIEMPO_COOLDOWN_HORAS = 0.0833 
@@ -28,6 +29,12 @@ export const useAlbumStore = defineStore('album', () => {
   const ultimoReclamoTime = ref(0)
   const tiempoRestanteSegundos = ref(0)
   let timerInterval = null
+
+  // Estado de datos IA
+  const analisisDashboardIA = ref(null)
+  const cargandoAnalisisIA = ref(false)
+  const errorAnalisisIA = ref(null)
+  const cargandoDatoCartaId = ref(null)
 
   const filtros = ref({
     busqueda: '',
@@ -345,19 +352,158 @@ async function canjearSobreCrafteo(userId) {
 }
 
 async function fabricarFiguritaPuntual(userId, figuritaId) {
-  if (!userId || !figuritaId) return
-  procesandoCrafteo.value = true
-  intercambiosCanceladosAuto.value = []
-  try {
-    const nuevoSaldo = await crafteoService.canjear('figurita', figuritaId)
-    puntosCrafteo.value = nuevoSaldo
-    miColeccion.value = await albumService.obtenerColeccion(userId)
+    if (!userId || !figuritaId) return
+    procesandoCrafteo.value = true
+    intercambiosCanceladosAuto.value = []
+    try {
+      const nuevoSaldo = await crafteoService.canjear('figurita', figuritaId)
+      puntosCrafteo.value = nuevoSaldo
+      miColeccion.value = await albumService.obtenerColeccion(userId)
 
-    await verificarYCancelarPedidosObtenidos(userId, new Set([String(figuritaId)]))
-  } finally {
-    procesandoCrafteo.value = false
+      await verificarYCancelarPedidosObtenidos(userId, new Set([String(figuritaId)]))
+    } finally {
+      procesandoCrafteo.value = false
+    }
   }
-}
+
+  // --- GETTER Y ACCIONES DEL MÓDULO DE INTELIGENCIA ARTIFICIAL ---
+  const seleccionMasCercana = computed(() => {
+    if (catalogo.value.length === 0) return 'Sin datos'
+
+    const poseidasSet = new Set(
+      miColeccion.value.filter(i => i.cantidad > 0).map(i => String(i.figurita_id))
+    )
+
+    const porPais = {}
+    catalogo.value.forEach(fig => {
+      if (!porPais[fig.pais]) {
+        porPais[fig.pais] = { total: 0, obtenidas: 0 }
+      }
+      porPais[fig.pais].total += 1
+      if (poseidasSet.has(String(fig.id))) {
+        porPais[fig.pais].obtenidas += 1
+      }
+    })
+
+    let mejorPais = null
+    let menorFaltantes = Infinity
+    let mejorPorcentaje = -1
+
+    Object.entries(porPais).forEach(([pais, stats]) => {
+      const faltantes = stats.total - stats.obtenidas
+      const pct = stats.obtenidas / stats.total
+      if (faltantes > 0 && (faltantes < menorFaltantes || (faltantes === menorFaltantes && pct > mejorPorcentaje))) {
+        menorFaltantes = faltantes
+        mejorPorcentaje = pct
+        mejorPais = `${pais} (${stats.obtenidas}/${stats.total}, le faltan ${faltantes})`
+      }
+    })
+
+    return mejorPais || 'Todas las selecciones completas'
+  })
+
+  async function generarAnalisisDashboard() {
+    cargandoAnalisisIA.value = true
+    errorAnalisisIA.value = null
+    try {
+      // Asegurar que tenemos los intercambios cargados para detectar oportunidades reales
+      if (intercambios.value.length === 0) {
+        await cargarIntercambios()
+      }
+
+      const mapaCantidades = {}
+      miColeccion.value.forEach(item => {
+        if (item && item.figurita_id) {
+          mapaCantidades[String(item.figurita_id)] = item.cantidad
+        }
+      })
+
+      // 1. Detalle de repetidas disponibles (cantidad > 1) con su valor de reciclaje
+      const listaRepetidas = []
+      let puntosPotencialesReciclaje = 0
+
+      catalogo.value.forEach(fig => {
+        const cant = mapaCantidades[String(fig.id)] || 0
+        if (cant > 1) {
+          const extras = cant - 1
+          const valorUnitario = fig.es_especial ? 40 : 10
+          puntosPotencialesReciclaje += extras * valorUnitario
+          listaRepetidas.push(
+            `#${fig.numero} ${fig.nombre_jugador} (${fig.pais}, ${fig.es_especial ? 'Especial +40pts' : 'Común +10pts'}) x${extras} repetida(s)`
+          )
+        }
+      })
+
+      // 2. Detalle de figuritas faltantes (cantidad === 0)
+      const listaFaltantes = catalogo.value
+        .filter(fig => (mapaCantidades[String(fig.id)] || 0) === 0)
+        .map(fig => `#${fig.numero} ${fig.nombre_jugador} (${fig.pais}, ${fig.es_especial ? 'Especial 250pts' : 'Común 100pts'})`)
+
+      // 3. Cruce real con el Tablón de Intercambios 1x1 (pedidos de otros que podés aceptar ya)
+      const oportunidadesTablon = intercambiosEnriquecidos.value
+        .filter(item => {
+          const tengoLaQueBusca = (mapaCantidades[String(item.figurita_buscada_id)] || 0) > 1
+          const meFaltaLaQueOfrece = (mapaCantidades[String(item.figurita_ofrecida_id)] || 0) === 0
+          return item.estado === 'pendiente' && tengoLaQueBusca && meFaltaLaQueOfrece
+        })
+        .map(item => {
+          const ofrece = item.figurita_ofrecida
+            ? `#${item.figurita_ofrecida.numero} ${item.figurita_ofrecida.nombre_jugador} (${item.figurita_ofrecida.pais})`
+            : 'figurita faltante'
+          const pide = item.figurita_buscada
+            ? `#${item.figurita_buscada.numero} ${item.figurita_buscada.nombre_jugador}`
+            : 'tu repetida'
+          return `${item.creador_nombre} te da ${ofrece} a cambio de tu repetida ${pide}`
+        })
+
+      const estadoSobreDiario = cooldownActivo.value
+        ? `En espera (faltan ${cooldownFormateado.value} para poder abrir el próximo sobre gratuito)`
+        : 'Disponible ahora mismo para abrir gratis'
+
+      const metricas = {
+        porcentaje: porcentajeCompletado.value,
+        obtenidas: totalObtenidas.value,
+        total: catalogo.value.length,
+        faltantes: totalFaltantes.value,
+        repetidas: totalRepetidas.value,
+        puntosCrafteo: puntosCrafteo.value,
+        puntosPotencialesReciclaje,
+        seleccionMasCercana: seleccionMasCercana.value,
+        estadoSobreDiario,
+        detalleRepetidas: listaRepetidas.slice(0, 15),
+        detalleFaltantes: listaFaltantes.slice(0, 15),
+        oportunidadesTablon
+      }
+
+      analisisDashboardIA.value = await iaService.analizarProgresoDashboard(metricas)
+    } catch (err) {
+      errorAnalisisIA.value =
+        err.response?.data?.error || err.message || 'No se pudo generar el análisis con IA.'
+    } finally {
+      cargandoAnalisisIA.value = false
+    }
+  }
+
+  async function consultarDatoJugadorIA(figurita) {
+    if (!figurita?.id) return
+    cargandoDatoCartaId.value = figurita.id
+    try {
+      const resultado = await iaService.obtenerDatoJugador(figurita)
+      const idx = miColeccion.value.findIndex(
+        item => String(item.figurita_id) === String(figurita.id)
+      )
+      if (idx !== -1) {
+        miColeccion.value[idx] = {
+          ...miColeccion.value[idx],
+          consultas_ia_usadas: resultado.consultas_ia_usadas,
+          ultimo_dato_ia: resultado.respuesta
+        }
+      }
+      return resultado.respuesta
+    } finally {
+      cargandoDatoCartaId.value = null
+    }
+  }
 
   return {
     catalogo,
@@ -391,6 +537,12 @@ async function fabricarFiguritaPuntual(userId, figuritaId) {
     procesandoCrafteo,
     reciclarFiguritas,
     canjearSobreCrafteo,
-    fabricarFiguritaPuntual
+    fabricarFiguritaPuntual,
+    analisisDashboardIA,
+    cargandoAnalisisIA,
+    errorAnalisisIA,
+    cargandoDatoCartaId,
+    generarAnalisisDashboard,
+    consultarDatoJugadorIA
   }
 })
